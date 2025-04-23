@@ -1,0 +1,9 @@
+Date,Region,Salesperson,Product,Units Sold,Unit Price,Total Sales
+1/1/2025,North,Alice,Laptop,3,800,2400
+1/2/2025,South,Bob,Tablet,5,200,1000
+1/3/2025,East,Charlie,Smartphone,7,500,3500
+1/4/2025,North,Alice,Tablet,2,200,400
+1/5/2025,West,David,Laptop,4,800,3200
+1/6/2025,South,Bob,Smartphone,3,500,1500
+1/7/2025,East,Charlie,Laptop,1,800,800
+1/8/2025,West,David,Tablet,6,200,1200

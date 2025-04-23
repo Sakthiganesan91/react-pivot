@@ -1,0 +1,24 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid rgb(243, 158, 158);
+  margin-top: 20px;
+  font-family: sans-serif;
+}
+
+th,
+td {
+  border: 1px solid rgb(243, 158, 158);
+  padding: 8px 12px;
+  text-align: center;
+}
+
+th {
+  background-color: rgb(243, 201, 201);
+  font-weight: bold;
+}
+
+tfoot td {
+  background-color: rgb(243, 201, 201);
+  font-weight: bold;
+}

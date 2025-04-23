@@ -81,7 +81,7 @@ const PivotTable = ({ data }) => {
               rowData[0]?.rowTitles.map((_, j) => (
                 <th
                   key={`row-header-placeholder-${j}`}
-                  rowSpan={rowData.length}
+                  rowSpan={columnHeaders.length}
                 >
                   Row Label {j + 1}
                 </th>

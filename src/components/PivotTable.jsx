@@ -49,9 +49,13 @@ const PivotTable = ({ data }) => {
     const rows = Array.from({ length: maxDepth }, () => []);
     columnHeaders.forEach((col) => {
       for (let i = 0; i < maxDepth; i++) {
+        //if (rows[i].includes(col.titles[i])) continue;
         rows[i].push(col.titles[i] || "");
       }
     });
+
+    console.log("ColumnHeaderRows");
+    console.log(rows);
     return rows;
   };
 
@@ -68,7 +72,8 @@ const PivotTable = ({ data }) => {
         </tr>
         {columnHeaderRows.map((row, i) => (
           <tr key={`col-header-${i}`}>
-            {i === 0 &&
+            {
+              //i === 0 &&
               rowData[0]?.rowTitles.map((_, j) => (
                 <th
                   key={`row-header-placeholder-${j}`}
@@ -76,7 +81,8 @@ const PivotTable = ({ data }) => {
                 >
                   Row Label {j + 1}
                 </th>
-              ))}
+              ))
+            }
             {row.map((col, j) => (
               <th key={`col-${i}-${j}`} colSpan={measureKeys.length}>
                 {col}

@@ -18,17 +18,11 @@ const TableDisplay = ({ data, headers }) => {
     setValueRows(values);
     const groupedData = groupBy(data, rows, columns, values);
     setNewData(groupedData);
-    console.log("Something");
+
     console.log(groupedData);
   };
   const addItemsToFilters = (e) => {
-    console.log("Drag End Event:", e);
-
-    console.log(e);
-
     const newItem = e.active.data.current?.title;
-    console.log("New Item:", newItem);
-    console.log("Dropped Over:", e.over);
 
     // if (!e.over) {
     //   console.warn("Dropped outside of a droppable area.");

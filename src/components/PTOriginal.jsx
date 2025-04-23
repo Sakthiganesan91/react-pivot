@@ -330,7 +330,6 @@
 //   };
 
 //   const rowData = flattenRows(rows);
-//   console.log(rowData);
 
 //   const flattenColumns = (cols, parentKey = "") => {
 //     if (!Array.isArray(cols)) return [];

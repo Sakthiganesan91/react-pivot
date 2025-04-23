@@ -18,13 +18,9 @@ export default function FileReader({ setData, setHeaders }) {
       complete: (results) => {
         const data = results.data;
         const headers = results.meta.fields;
-        // console.log(data);
-        // console.log(headers);
 
         setData(data);
         setHeaders(headers);
-
-        // console.log("done");
       },
       error: (error) => {
         console.error("Error parsing CSV:", error);

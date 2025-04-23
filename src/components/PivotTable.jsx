@@ -54,12 +54,14 @@ const PivotTable = ({ data }) => {
       }
     });
 
-    console.log("ColumnHeaderRows");
-    console.log(rows);
     return rows;
   };
 
   const columnHeaderRows = buildColumnHeaderRows();
+
+  console.log(rowData);
+  console.log(measureKeys);
+  console.log(columnHeaderRows);
 
   return (
     <table border="1" style={{ borderCollapse: "collapse", width: "100%" }}>
@@ -69,11 +71,13 @@ const PivotTable = ({ data }) => {
             rowData[0]?.rowTitles.map((_, i) => (
               <th key={`row-header-placeholder-${i}`}>Row Label {i + 1}</th>
             ))}
+          {columnHeaderRows.length === 0 &&
+            columnHeaders.length === 0 &&
+            measureKeys.map((measure) => <th key={measure}>{measure}</th>)}
         </tr>
         {columnHeaderRows.map((row, i) => (
           <tr key={`col-header-${i}`}>
-            {
-              //i === 0 &&
+            {i === 0 &&
               rowData[0]?.rowTitles.map((_, j) => (
                 <th
                   key={`row-header-placeholder-${j}`}
@@ -81,8 +85,7 @@ const PivotTable = ({ data }) => {
                 >
                   Row Label {j + 1}
                 </th>
-              ))
-            }
+              ))}
             {row.map((col, j) => (
               <th key={`col-${i}-${j}`} colSpan={measureKeys.length}>
                 {col}
@@ -92,11 +95,12 @@ const PivotTable = ({ data }) => {
         ))}
         {measureKeys.length > 0 && (
           <tr>
-            {columnHeaders.map((col) =>
-              measureKeys.map((measure) => (
-                <th key={`${col.key}-${measure}`}>{measure}</th>
-              ))
-            )}
+            {columnHeaders.length > 0 &&
+              columnHeaders.map((col) =>
+                measureKeys.map((measure) => (
+                  <th key={`${col.key}-${measure}`}>{measure}</th>
+                ))
+              )}
           </tr>
         )}
       </thead>

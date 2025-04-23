@@ -1,31 +1,8 @@
 import React from "react";
+import { flattenColumns, flattenRows } from "./calculation";
 
 const PivotTable = ({ data }) => {
   const { rows = [], columns = [], values = [] } = data || {};
-
-  const flattenRows = (rows, parentKey = "", titles = []) => {
-    if (!Array.isArray(rows)) return [];
-    return rows.flatMap((row) => {
-      const fullKey = parentKey ? `${parentKey}|${row.key}` : row.key;
-      const fullTitles = [...titles, row.title || row.key];
-      if (row.children) {
-        return flattenRows(row.children, fullKey, fullTitles);
-      }
-      return [{ rowKey: fullKey, rowTitles: fullTitles }];
-    });
-  };
-
-  const flattenColumns = (cols, parentKey = "", titles = []) => {
-    if (!Array.isArray(cols)) return [];
-    return cols.flatMap((col) => {
-      const fullKey = parentKey ? `${parentKey}|${col.key}` : col.key;
-      const fullTitles = [...titles, col.title || col.key];
-      if (col.children) {
-        return flattenColumns(col.children, fullKey, fullTitles);
-      }
-      return [{ key: fullKey, titles: fullTitles }];
-    });
-  };
 
   const rowData = flattenRows(rows);
   const columnHeaders = flattenColumns(columns);
@@ -48,6 +25,7 @@ const PivotTable = ({ data }) => {
     const maxDepth = Math.max(...columnHeaders.map((ch) => ch.titles.length));
     const rows = Array.from({ length: maxDepth }, () => []);
     columnHeaders.forEach((col) => {
+      console.log(col);
       for (let i = 0; i < maxDepth; i++) {
         //if (rows[i].includes(col.titles[i])) continue;
         rows[i].push(col.titles[i] || "");
@@ -67,12 +45,12 @@ const PivotTable = ({ data }) => {
   console.log("------------------------------------");
 
   return (
-    <table border="1" style={{ borderCollapse: "collapse", width: "100%" }}>
-      <thead>
+    <table border="1" className="table">
+      <thead className="table-danger">
         <tr>
           {columnHeaderRows.length === 0 &&
             rowData[0]?.rowTitles.map((_, i) => (
-              <th key={`row-header-placeholder-${i}`}>Row Label {i + 1}</th>
+              <th key={`row-header-placeholder-${i}`}>Row {i + 1}</th>
             ))}
           {columnHeaderRows.length === 0 &&
             columnHeaders.length === 0 &&
@@ -87,7 +65,7 @@ const PivotTable = ({ data }) => {
                   key={`row-header-placeholder-${j}`}
                   rowSpan={columnHeaders.length}
                 >
-                  Row Label {j + 1}
+                  Row {j + 1}
                 </th>
               ))}
             {row.map((col, j) => (
@@ -143,7 +121,10 @@ const PivotTable = ({ data }) => {
               ? columnHeaders.map((col) =>
                   measureKeys.map((measure) => (
                     <td key={`${rowKey}-${col.key}-${measure}`}>
-                      {getCell(rowKey, col.key)[measure] || ""}
+                      {console.log(
+                        getCell(rowKey, col.key)[measure]?.toFixed(2)
+                      )}
+                      {getCell(rowKey, col.key)[measure]?.toFixed(2) || ""}
                     </td>
                   ))
                 )
@@ -167,7 +148,9 @@ const PivotTable = ({ data }) => {
       <tfoot>
         {measureKeys.length > 0 && (
           <tr>
-            <td colSpan={rowData[0]?.rowTitles.length}>Total</td>
+            {rowData.length > 0 && (
+              <td colSpan={rowData[0]?.rowTitles.length}>Total</td>
+            )}
 
             {columnHeaders.length > 0
               ? columnHeaders.flatMap((col) =>

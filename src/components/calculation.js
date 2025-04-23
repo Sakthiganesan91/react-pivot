@@ -133,7 +133,7 @@ const calculateGrandTotal = (data, values) => {
   values.forEach((value) => {
     totals[value] = data.reduce((sum, item) => {
       const parsed = parseFloat(item[value]);
-      console.log(parsed);
+
       if (!isNaN(parsed)) {
         return sum + parsed;
       } else {
@@ -142,6 +142,29 @@ const calculateGrandTotal = (data, values) => {
     }, 0);
   });
 
-  console.log(totals);
   return totals;
+};
+
+export const flattenRows = (rows, parentKey = "", titles = []) => {
+  if (!Array.isArray(rows)) return [];
+  return rows.flatMap((row) => {
+    const fullKey = parentKey ? `${parentKey}|${row.key}` : row.key;
+    const fullTitles = [...titles, row.title || row.key];
+    if (row.children) {
+      return flattenRows(row.children, fullKey, fullTitles);
+    }
+    return [{ rowKey: fullKey, rowTitles: fullTitles }];
+  });
+};
+
+export const flattenColumns = (cols, parentKey = "", titles = []) => {
+  if (!Array.isArray(cols)) return [];
+  return cols.flatMap((col) => {
+    const fullKey = parentKey ? `${parentKey}|${col.key}` : col.key;
+    const fullTitles = [...titles, col.title || col.key];
+    if (col.children) {
+      return flattenColumns(col.children, fullKey, fullTitles);
+    }
+    return [{ key: fullKey, titles: fullTitles }];
+  });
 };

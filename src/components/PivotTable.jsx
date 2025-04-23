@@ -59,9 +59,12 @@ const PivotTable = ({ data }) => {
 
   const columnHeaderRows = buildColumnHeaderRows();
 
+  console.log("------------------------------------");
   console.log(rowData);
   console.log(measureKeys);
   console.log(columnHeaderRows);
+  console.log(columnHeaders);
+  console.log("------------------------------------");
 
   return (
     <table border="1" style={{ borderCollapse: "collapse", width: "100%" }}>
@@ -73,6 +76,7 @@ const PivotTable = ({ data }) => {
             ))}
           {columnHeaderRows.length === 0 &&
             columnHeaders.length === 0 &&
+            measureKeys &&
             measureKeys.map((measure) => <th key={measure}>{measure}</th>)}
         </tr>
         {columnHeaderRows.map((row, i) => (
@@ -163,9 +167,7 @@ const PivotTable = ({ data }) => {
       <tfoot>
         {measureKeys.length > 0 && (
           <tr>
-            {rowData[0]?.rowTitles.map((_, i) => (
-              <td key={`footer-label-${i}`}>Total</td>
-            ))}
+            <td colSpan={rowData[0]?.rowTitles.length}>Total</td>
 
             {columnHeaders.length > 0
               ? columnHeaders.flatMap((col) =>

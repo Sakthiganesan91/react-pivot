@@ -1,11 +1,11 @@
-// import React from "react";
+// import { useMemo } from "react";
 // import { flattenColumns, flattenRows } from "./calculation";
 
-// const PivotTable = ({ data }) => {
+// const PivotTable = ({ data, method }) => {
 //   const { rows = [], columns = [], values = [] } = data || {};
 
-//   const rowData = flattenRows(rows);
-//   const columnHeaders = flattenColumns(columns);
+//   const rowData = useMemo(() => flattenRows(rows), [rows]);
+//   const columnHeaders = useMemo(() => flattenColumns(columns), [columns]);
 //   const measureKeys =
 //     typeof values !== "function" &&
 //     Array.from(
@@ -25,7 +25,6 @@
 //     const maxDepth = Math.max(...columnHeaders.map((ch) => ch.titles.length));
 //     const rows = Array.from({ length: maxDepth }, () => []);
 //     columnHeaders.forEach((col) => {
-//       console.log(col);
 //       for (let i = 0; i < maxDepth; i++) {
 //         //if (rows[i].includes(col.titles[i])) continue;
 //         rows[i].push(col.titles[i] || "");
@@ -36,13 +35,6 @@
 //   };
 
 //   const columnHeaderRows = buildColumnHeaderRows();
-
-//   console.log("------------------------------------");
-//   console.log(rowData);
-//   console.log(measureKeys);
-//   console.log(columnHeaderRows);
-//   console.log(columnHeaders);
-//   console.log("------------------------------------");
 
 //   return (
 //     <table border="1" className="table">
@@ -120,20 +112,28 @@
 //             columnHeaders.length > 0
 //               ? columnHeaders.map((col) =>
 //                   measureKeys.map((measure) => (
+//                     // <td key={`${rowKey}-${col.key}-${measure}`}>
+//                     //   {getCell(rowKey, col.key)[measure]?.toFixed(2) || ""}
+//                     // </td>
 //                     <td key={`${rowKey}-${col.key}-${measure}`}>
-//                       {console.log(
-//                         getCell(rowKey, col.key)[measure]?.toFixed(2)
-//                       )}
-//                       {getCell(rowKey, col.key)[measure]?.toFixed(2) || ""}
+//                       {typeof getCell(rowKey, col.key)[measure] === "object"
+//                         ? getCell(rowKey, col.key)[measure].sum /
+//                             getCell(rowKey, col.key)[measure].count?.toFixed(
+//                               2
+//                             ) || ""
+//                         : getCell(rowKey, col.key)[measure]?.toFixed(2) || ""}
 //                     </td>
 //                   ))
 //                 )
 //               : measureKeys.map((measure) => {
 //                   const cell = getCell(rowKey, "");
+
 //                   const val = cell[measure];
 //                   return (
 //                     <td key={`cell-${i}-${measure}`}>
-//                       {typeof val === "number"
+//                       {typeof val === "object"
+//                         ? (val.sum / val.count).toFixed(2) || ""
+//                         : typeof val === "number"
 //                         ? val.toFixed(2)
 //                         : typeof val === "string" && val.trim() !== ""
 //                         ? val
@@ -160,16 +160,23 @@
 //                     );
 //                     let sum = 0;
 //                     let count = 0;
+
 //                     matchingValues.forEach((v) => {
 //                       const val = v.measures?.[measure];
+
 //                       if (typeof val === "number") sum += val;
-//                       else if (typeof val === "string" && val.trim() !== "")
+//                       else if (typeof val === "object") {
+//                         sum = val.sum;
+//                         count = val.count;
+//                       } else if (typeof val === "string" && val.trim() !== "")
 //                         count++;
 //                     });
 
 //                     return (
 //                       <td key={`footer-${col.key}-${measure}`}>
-//                         {sum > 0
+//                         {method === "average"
+//                           ? sum / count
+//                           : sum > 0
 //                           ? sum.toFixed(2)
 //                           : count > 0
 //                           ? `${count}x`
@@ -183,14 +190,24 @@
 //                   let count = 0;
 //                   values.forEach((v) => {
 //                     const val = v.measures?.[measure];
+//                     console.log(val);
 //                     if (typeof val === "number") sum += val;
-//                     else if (typeof val === "string" && val.trim() !== "")
+//                     else if (typeof val === "object") {
+//                       sum += val.sum;
+//                       count += val.count;
+//                     } else if (typeof val === "string" && val.trim() !== "")
 //                       count++;
 //                   });
 
 //                   return (
 //                     <td key={`footer-${measure}`}>
-//                       {sum > 0 ? sum.toFixed(2) : count > 0 ? `${count}x` : ""}
+//                       {method === "average"
+//                         ? sum / count
+//                         : sum > 0
+//                         ? sum.toFixed(2)
+//                         : count > 0
+//                         ? `${count}x`
+//                         : ""}
 //                     </td>
 //                   );
 //                 })}

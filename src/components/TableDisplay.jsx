@@ -1,9 +1,8 @@
-import React, { use, useState } from "react";
+import { useState } from "react";
 import PivotTableFields from "./PivotTableFields";
 
 import PivotTable from "./PivotTable";
 import { groupBy } from "./calculation";
-import { DndContext } from "@dnd-kit/core";
 
 const TableDisplay = ({ data, headers }) => {
   const [tableRows, setTableRows] = useState([]);
@@ -11,29 +10,26 @@ const TableDisplay = ({ data, headers }) => {
   const [valueRows, setValueRows] = useState([]);
   const [columnValues, setColumnValues] = useState([]);
   const [filters, setFilters] = useState([]);
+  const [method, setMethod] = useState([]);
 
-  const getRows = (rows = [], columns = [], values = []) => {
+  const getRows = (
+    rows = [],
+    columns = [],
+    values = [],
+    aggregrationMethod = "add"
+  ) => {
     setTableRows(rows);
     setColumnValues(columns);
     setValueRows(values);
-    const groupedData = groupBy(data, rows, columns, values);
+    setMethod(aggregrationMethod);
+    const groupedData = groupBy(
+      data,
+      rows,
+      columns,
+      values,
+      aggregrationMethod
+    );
     setNewData(groupedData);
-
-    console.log(groupedData);
-  };
-  const addItemsToFilters = (e) => {
-    const newItem = e.active.data.current?.title;
-
-    // if (!e.over) {
-    //   console.warn("Dropped outside of a droppable area.");
-    //   return;
-    // }
-
-    if (e.over?.id !== newItem || !newItem) return;
-
-    if (!filters.includes(newItem)) {
-      setFilters((prev) => [...prev, newItem]);
-    }
   };
 
   return (
@@ -41,23 +37,21 @@ const TableDisplay = ({ data, headers }) => {
       <div className="container">
         <div className="row">
           <div className="col-12">
-            <PivotTable data={newData} />
+            <PivotTable data={newData} method={method} />
             {/* <button onClick={() => getRows()}>Click</button> */}
           </div>
         </div>
 
         <div className="row">
           <div className="col-6">
-            <DndContext onDragEnd={addItemsToFilters}>
-              <div className="col-12">
-                <PivotTableFields
-                  headers={headers}
-                  setTableRows={getRows}
-                  setValueRows={setValueRows}
-                  setColumnValues={setColumnValues}
-                />
-              </div>
-            </DndContext>
+            <div className="col-12">
+              <PivotTableFields
+                headers={headers}
+                setTableRows={getRows}
+                setValueRows={setValueRows}
+                setColumnValues={setColumnValues}
+              />
+            </div>
           </div>
         </div>
       </div>

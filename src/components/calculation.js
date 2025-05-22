@@ -1,4 +1,10 @@
-export const groupBy = (data, rowKeys, columnKeys, values) => {
+export const groupBy = (
+  data,
+  rowKeys,
+  columnKeys,
+  values,
+  aggregationMethod
+) => {
   if (!rowKeys.length && !columnKeys.length && !values.length) return data;
 
   if (!rowKeys.length && !columnKeys.length && values.length) {
@@ -8,44 +14,86 @@ export const groupBy = (data, rowKeys, columnKeys, values) => {
     //     return total + (parseFloat(item[value]) || 0);
     //   }, 0);
     // });
-    values.forEach((value) => {
-      measures[value] = data.reduce((sum, item) => {
-        const parsed = parseFloat(item[value]);
-        if (!isNaN(parsed)) {
-          return sum + parsed;
-        } else {
-          return sum + 1;
-        }
-      }, 0);
-    });
+
+    switch (aggregationMethod) {
+      case "add":
+        values.forEach((value) => {
+          measures[value] = data.reduce((sum, item) => {
+            const parsed = parseFloat(item[value]);
+            if (!isNaN(parsed)) {
+              return sum + parsed;
+            } else {
+              return sum + 1;
+            }
+          }, 0);
+        });
+
+        break;
+      case "count":
+        values.forEach((value) => {
+          measures[value] = data.reduce((sum, item) => {
+            return sum + 1;
+          }, 0);
+        });
+
+        break;
+
+      case "max":
+        values.forEach((value) => {
+          if (!measures[value]) measures[value] = 0;
+          const parsed = parseFloat(measures[value]);
+          measures[value] = Math.max(measures[value], parsed);
+        });
+        break;
+
+      case "min":
+        values.forEach((value) => {
+          if (!measures[value]) measures[value] = 999999999999999;
+          const parsed = parseFloat(measures[value]);
+          measures[value] = Math.min(measures[value], parsed);
+        });
+        break;
+      default:
+        break;
+    }
+    // values.forEach((value) => {
+    //   measures[value] = data.reduce((sum, item) => {
+    //     const parsed = parseFloat(item[value]);
+    //     if (!isNaN(parsed)) {
+    //       return sum + parsed;
+    //     } else {
+    //       return sum + 1;
+    //     }
+    //   }, 0);
+    // });
     return measures;
   }
 
   if (rowKeys.length && !columnKeys.length) {
     return {
-      rows: groupByDimension(data, rowKeys, values),
-      values: groupByCells(data, rowKeys, [], values),
-      grandTotal: calculateGrandTotal(data, values),
+      rows: groupByDimension(data, rowKeys, values, aggregationMethod),
+      values: groupByCells(data, rowKeys, [], values, aggregationMethod),
+      grandTotal: calculateGrandTotal(data, values, aggregationMethod),
     };
   }
 
   if (!rowKeys.length && columnKeys.length) {
     return {
-      columns: groupByDimension(data, columnKeys, []),
-      values: groupByCells(data, [], columnKeys, values),
-      grandTotal: calculateGrandTotal(data, values),
+      columns: groupByDimension(data, columnKeys, [], aggregationMethod),
+      values: groupByCells(data, [], columnKeys, values, aggregationMethod),
+      grandTotal: calculateGrandTotal(data, values, aggregationMethod),
     };
   }
 
   return {
-    rows: groupByDimension(data, rowKeys, values),
-    columns: groupByDimension(data, columnKeys, values),
-    values: groupByCells(data, rowKeys, columnKeys, values),
-    grandTotal: calculateGrandTotal(data, values),
+    rows: groupByDimension(data, rowKeys, values, aggregationMethod),
+    columns: groupByDimension(data, columnKeys, values, aggregationMethod),
+    values: groupByCells(data, rowKeys, columnKeys, values, aggregationMethod),
+    grandTotal: calculateGrandTotal(data, values, aggregationMethod),
   };
 };
 
-const groupByDimension = (data, keys, values) => {
+const groupByDimension = (data, keys, values, aggregationMethod) => {
   if (!keys.length) return data;
 
   const [currentKey, ...restKeys] = keys;
@@ -69,12 +117,53 @@ const groupByDimension = (data, keys, values) => {
     };
 
     if (values && values.length) {
-      values.forEach((value) => {
-        entry[value] = items.reduce((total, item) => {
-          const parsed = parseFloat(item[value]);
-          return total + (!isNaN(parsed) ? parsed : 1);
-        }, 0);
-      });
+      switch (aggregationMethod) {
+        case "add":
+          values.forEach((value) => {
+            entry[value] = data.reduce((sum, item) => {
+              const parsed = parseFloat(item[value]);
+              if (!isNaN(parsed)) {
+                return sum + parsed;
+              } else {
+                return sum + 1;
+              }
+            }, 0);
+          });
+
+          break;
+        case "count":
+          values.forEach((value) => {
+            entry[value] = data.reduce((sum, item) => {
+              return sum + 1;
+            }, 0);
+          });
+
+          break;
+
+        case "max":
+          values.forEach((value) => {
+            if (!entry[value]) entry[value] = 0;
+            const parsed = parseFloat(entry[value]);
+            entry[value] = Math.max(entry[value], parsed);
+          });
+          break;
+
+        case "min":
+          values.forEach((value) => {
+            if (!entry[value]) entry[value] = 999999999999999;
+            const parsed = parseFloat(entry[value]);
+            entry[value] = Math.min(entry[value], parsed);
+          });
+          break;
+        default:
+          break;
+      }
+      // values.forEach((value) => {
+      //   entry[value] = items.reduce((total, item) => {
+      //     const parsed = parseFloat(item[value]);
+      //     return total + (!isNaN(parsed) ? parsed : 1);
+      //   }, 0);
+      // });
     }
 
     if (restKeys.length) {
@@ -87,7 +176,7 @@ const groupByDimension = (data, keys, values) => {
   return grouped;
 };
 
-const groupByCells = (data, rowKeys, columnKeys, values) => {
+const groupByCells = (data, rowKeys, columnKeys, values, aggregationMethod) => {
   const cells = [];
 
   data.forEach((item) => {
@@ -117,30 +206,122 @@ const groupByCells = (data, rowKeys, columnKeys, values) => {
       cells.push(cell);
     }
 
-    values.forEach((value) => {
-      if (!cell.measures[value]) cell.measures[value] = 0;
-      const parsed = parseFloat(item[value]);
-      cell.measures[value] += !isNaN(parsed) ? parsed : 1;
-    });
+    switch (aggregationMethod) {
+      case "add":
+        values.forEach((value) => {
+          if (!cell.measures[value]) cell.measures[value] = 0;
+          const parsed = parseFloat(item[value]);
+          cell.measures[value] += !isNaN(parsed) ? parsed : 1;
+        });
+
+        break;
+      case "count":
+        values.forEach((value) => {
+          if (!cell.measures[value]) cell.measures[value] = 0;
+
+          cell.measures[value] += 1;
+        });
+
+        break;
+
+      case "average":
+        values.forEach((value) => {
+          if (!cell.measures[value]) {
+            cell.measures[value] = { sum: 0, count: 0 };
+          }
+
+          const parsed = parseFloat(item[value]);
+          if (!isNaN(parsed)) {
+            cell.measures[value].sum += parsed;
+            cell.measures[value].count += 1;
+          }
+        });
+        break;
+
+      case "max":
+        values.forEach((value) => {
+          if (!cell.measures[value]) cell.measures[value] = 0;
+          const parsed = parseFloat(item[value]);
+          if (!isNaN(parsed))
+            cell.measures[value] = Math.max(cell.measures[value], parsed);
+        });
+        break;
+      case "min":
+        values.forEach((value) => {
+          if (!cell.measures[value]) cell.measures[value] = Infinity;
+          const parsed = parseFloat(item[value]);
+          if (!isNaN(parsed))
+            cell.measures[value] = Math.min(cell.measures[value], parsed);
+        });
+        break;
+      default:
+        break;
+    }
+    // values.forEach((value) => {
+    //   if (!cell.measures[value]) cell.measures[value] = 0;
+    //   const parsed = parseFloat(item[value]);
+    //   cell.measures[value] += !isNaN(parsed) ? parsed : 1;
+    // });
   });
 
   return cells;
 };
 
-const calculateGrandTotal = (data, values) => {
+const calculateGrandTotal = (data, values, aggregationMethod) => {
   const totals = {};
 
-  values.forEach((value) => {
-    totals[value] = data.reduce((sum, item) => {
-      const parsed = parseFloat(item[value]);
+  switch (aggregationMethod) {
+    case "add":
+      values.forEach((value) => {
+        totals[value] = data.reduce((sum, item) => {
+          const parsed = parseFloat(item[value]);
+          if (!isNaN(parsed)) {
+            return sum + parsed;
+          } else {
+            return sum + 1;
+          }
+        }, 0);
+      });
 
-      if (!isNaN(parsed)) {
-        return sum + parsed;
-      } else {
-        return sum + 1;
-      }
-    }, 0);
-  });
+      break;
+    case "count":
+      values.forEach((value) => {
+        totals[value] = data.reduce((sum, item) => {
+          return sum + 1;
+        }, 0);
+      });
+
+      break;
+
+    case "max":
+      values.forEach((value) => {
+        if (!totals[value]) totals[value] = 0;
+        const parsed = parseFloat(totals[value]);
+
+        totals[value] = Math.max(totals[value], parsed);
+      });
+      break;
+    case "min":
+      values.forEach((value) => {
+        if (!totals[value]) totals[value] = 999999999999999;
+        const parsed = parseFloat(totals[value]);
+        totals[value] = Math.min(totals[value], parsed);
+      });
+      break;
+    default:
+      break;
+  }
+  // values.forEach((value) => {
+  //   totals[value] = data.reduce((sum, item) => {
+  //     const parsed = parseFloat(item[value]);
+
+  //     if (!isNaN(parsed)) {
+  //       return sum + parsed;
+  //     } else {
+  //       return sum + 1;
+  //     }
+  //   }, 0);
+  // });
 
   return totals;
 };

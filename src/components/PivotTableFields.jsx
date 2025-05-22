@@ -1,176 +1,140 @@
-import { DndContext, useDroppable } from "@dnd-kit/core";
-import React, { useState } from "react";
-import { useDraggable } from "@dnd-kit/core";
+import React, { useState, useCallback } from "react";
 
-import { CSS } from "@dnd-kit/utilities";
-
-const DraggableHeader = (props) => {
-  const { header } = props;
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: header,
-    data: { title: header },
-  });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform) }}
-      {...attributes}
-      {...listeners}
-    >
-      {header}
-    </div>
-  );
-};
-const FilterDrop = (props) => {
-  const { filter } = props;
-  const { setNodeRef } = useDroppable({
-    id: filter,
-  });
-
-  return (
-    <>
-      <div ref={setNodeRef}>
-        {
-          <label htmlFor={filter} className="mx-2">
-            {filter[0].toUpperCase() + filter.slice(1, filter.length)}
-          </label>
-        }
+const FieldSelector = React.memo(({ title, headers, selected, onChange }) => (
+  <div className="col-4">
+    <p className="fw-bold">{title}</p>
+    {headers.map((header) => (
+      <div key={header}>
+        <input
+          type="checkbox"
+          name={header}
+          id={`${title}-${header}`}
+          checked={selected.includes(header)}
+          onChange={onChange}
+        />
+        <label htmlFor={`${title}-${header}`} className="mx-2">
+          {header[0].toUpperCase() + header.slice(1)}
+        </label>
       </div>
-    </>
-  );
-};
-const PivotTableFields = ({
-  headers,
-  setTableRows,
-  setValueRows,
-  setColumnValues,
-}) => {
-  const [rows, setRows] = useState([]);
-  const [values, setValues] = useState([]);
-  const [columns, setColumns] = useState([]);
-  const [filters, setFilters] = useState([]);
+    ))}
+  </div>
+));
 
-  const columnChangeHandler = (event) => {
-    const columnName = event.target.name;
-    const isChecked = event.target.checked;
+const aggregrations = ["add", "average", "count", "max", "min"];
 
-    let updatedColumns = [];
+const PivotTableFields = React.memo(
+  ({ headers, setTableRows, setValueRows, setColumnValues }) => {
+    const [rows, setRows] = useState([]);
+    const [values, setValues] = useState([]);
+    const [columns, setColumns] = useState([]);
+    const [aggregrationMethod, setAggregationMethod] = useState("add");
 
-    if (isChecked) {
-      updatedColumns = [...columns, columnName];
-    } else {
-      updatedColumns = columns.filter((column) => column !== columnName);
+    const rowChangeHandler = useCallback(
+      (event) => {
+        const name = event.target.name;
+        const isChecked = event.target.checked;
+
+        const updated = isChecked
+          ? [...rows, name]
+          : rows.filter((r) => r !== name);
+
+        setRows(updated);
+        setTableRows(updated, columns, values, aggregrationMethod);
+      },
+      [rows, columns, values, aggregrationMethod]
+    );
+
+    const columnChangeHandler = useCallback(
+      (event) => {
+        const name = event.target.name;
+        const isChecked = event.target.checked;
+
+        const updated = isChecked
+          ? [...columns, name]
+          : columns.filter((c) => c !== name);
+
+        setColumns(updated);
+        setColumnValues(updated);
+        setTableRows(rows, updated, values, aggregrationMethod);
+      },
+      [columns, rows, values, aggregrationMethod, setColumnValues]
+    );
+
+    const valuesChangeHandler = useCallback(
+      (event) => {
+        const name = event.target.name;
+        const isChecked = event.target.checked;
+
+        const updated = isChecked
+          ? [...values, name]
+          : values.filter((v) => v !== name);
+
+        setValues(updated);
+        setValueRows(updated);
+        setTableRows(rows, columns, updated, aggregrationMethod);
+      },
+      [values, rows, columns, aggregrationMethod, setValueRows]
+    );
+
+    const aggregationMethodHandler = useCallback(
+      (event) => {
+        const method = event.target.value;
+        setAggregationMethod(method);
+        setTableRows(rows, columns, values, method);
+      },
+      [rows, columns, values]
+    );
+
+    if (!headers || headers.length === 0) {
+      return <p>No headers found. Please import CSV file.</p>;
     }
 
-    setColumns(updatedColumns);
-    setColumnValues(updatedColumns);
-
-    setTableRows(rows, updatedColumns, values);
-  };
-
-  const rowChangeHandler = (event) => {
-    const rowName = event.target.name;
-    const isChecked = event.target.checked;
-
-    let updatedRows = [];
-
-    if (isChecked) {
-      updatedRows = [...rows, rowName];
-    } else {
-      updatedRows = rows.filter((row) => row !== rowName);
-    }
-
-    setRows(updatedRows);
-    setTableRows(updatedRows, columns, values);
-  };
-
-  const valuesChangeHandler = (event) => {
-    const valueName = event.target.name;
-    const isChecked = event.target.checked;
-
-    let updatedValues = [];
-
-    if (isChecked) {
-      updatedValues = [...values, valueName];
-    } else {
-      updatedValues = values.filter((value) => value !== valueName);
-    }
-
-    setValues(updatedValues);
-    setValueRows(updatedValues);
-    setTableRows(rows, columns, updatedValues);
-  };
-
-  if (headers.length <= 0) return "No Headers found. Please import csv file";
-  return (
-    <>
-      <div className="border border-2 ">
-        <div className="row my-2">
-          {/* <div className="col-6">
-            <p>Filters</p>
-            {filters.map((filter) => (
-              <FilterDrop filter={filter} />
-            ))}
-          </div> */}
-        </div>
+    return (
+      <div className="border border-2 p-3">
         <div className="row">
-          <div className="col-4">
-            <p>Rows</p>
-            {headers.map((header) => (
-              <div key={header}>
+          <FieldSelector
+            title="Rows"
+            headers={headers}
+            selected={rows}
+            onChange={rowChangeHandler}
+          />
+          <FieldSelector
+            title="Columns"
+            headers={headers}
+            selected={columns}
+            onChange={columnChangeHandler}
+          />
+          <FieldSelector
+            title="Values"
+            headers={headers}
+            selected={values}
+            onChange={valuesChangeHandler}
+          />
+        </div>
+
+        <div className="row my-3">
+          <div className="col-3">
+            <p className="fw-bold">Aggregation Methods</p>
+            {aggregrations.map((method) => (
+              <div key={method}>
                 <input
-                  type="checkbox"
-                  name={header}
-                  id={header}
-                  value={header}
-                  onChange={rowChangeHandler}
+                  type="radio"
+                  name="aggregation"
+                  id={method}
+                  value={method}
+                  checked={aggregrationMethod === method}
+                  onChange={aggregationMethodHandler}
                 />
-                <label htmlFor={header} className="mx-2">
-                  {header[0].toUpperCase() + header.slice(1, header.length)}
-                </label>
-              </div>
-            ))}
-          </div>
-          <div className="col-4">
-            <p>Columns</p>
-            {headers.map((header) => (
-              <div key={header}>
-                <input
-                  type="checkbox"
-                  name={header}
-                  id={header}
-                  value={header}
-                  onChange={columnChangeHandler}
-                />
-                <label htmlFor={header} className="mx-2">
-                  {header[0].toUpperCase() + header.slice(1, header.length)}
-                </label>
-              </div>
-            ))}
-          </div>
-          <div className="col-4">
-            <p>Values</p>
-            {headers.map((header) => (
-              <div key={header}>
-                <input
-                  type="checkbox"
-                  name={header}
-                  id={header}
-                  value={header}
-                  onChange={valuesChangeHandler}
-                />
-                <label htmlFor={header} className="mx-2">
-                  {header[0].toUpperCase() + header.slice(1, header.length)}
+                <label htmlFor={method} className="mx-2">
+                  {method[0].toUpperCase() + method.slice(1)}
                 </label>
               </div>
             ))}
           </div>
         </div>
-
-        <div className="row"></div>
       </div>
-    </>
-  );
-};
+    );
+  }
+);
 
 export default PivotTableFields;

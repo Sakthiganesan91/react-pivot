@@ -153,11 +153,41 @@ const PivotTable = ({ data, method }) => {
                 </th>
               ))}
 
-            {row.map((col, j) => (
-              <th key={`col-${i}-${j}`} colSpan={measureKeys.length || 1}>
-                {col}
-              </th>
-            ))}
+            {row.map((col, j) => {
+              const shouldRenderColumn =
+                j === 0 ||
+                row[j - 1] !== col ||
+                !columnHeaders[j - 1]?.key
+                  .split("|")
+                  .slice(0, i + 1)
+                  .every(
+                    (val, idx) => val === columnHeaders[j]?.key.split("|")[idx]
+                  );
+
+              if (!shouldRenderColumn) return null;
+
+              const colSpan = row.slice(j).findIndex(
+                (c, idx) =>
+                  idx > 0 &&
+                  (c !== col ||
+                    !columnHeaders[j + idx]?.key
+                      .split("|")
+                      .slice(0, i + 1)
+                      .every(
+                        (val, vidx) =>
+                          val === columnHeaders[j]?.key.split("|")[vidx]
+                      ))
+              );
+
+              const actualColSpan = colSpan === -1 ? row.length - j : colSpan;
+              const finalColSpan = actualColSpan * (measureKeys.length || 1);
+
+              return (
+                <th key={`col-${i}-${j}`} colSpan={finalColSpan}>
+                  {col}
+                </th>
+              );
+            })}
           </tr>
         ))}
 

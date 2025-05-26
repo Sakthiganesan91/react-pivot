@@ -219,3 +219,141 @@
 // };
 
 // export default PivotTable;
+// <table border="1" className="table">
+//   <thead className="table-danger">
+//     {columnHeaderRows.length === 0 && (
+//       <tr>
+//         {rowData[0]?.rowTitles.map((_, i) => (
+//           <th key={`row-header-placeholder-${i}`}>Row {i + 1}</th>
+//         ))}
+//         {columnHeaders.length === 0 &&
+//           measureKeys.map((measure) => <th key={measure}>{measure}</th>)}
+//       </tr>
+//     )}
+
+//     {columnHeaderRows.map((row, i) => (
+//       <tr key={`col-header-${i}`}>
+//         {i === 0 &&
+//           rowData[0]?.rowTitles.map((_, j) => (
+//             <th
+//               key={`row-header-placeholder-${j}`}
+//               rowSpan={
+//                 columnHeaderRows.length + (measureKeys.length > 0 ? 1 : 0)
+//               }
+//             >
+//               Row {j + 1}
+//             </th>
+//           ))}
+
+//         {row.map((col, j) => (
+//           <th key={`col-${i}-${j}`} colSpan={measureKeys.length || 1}>
+//             {col}
+//           </th>
+//         ))}
+//       </tr>
+//     ))}
+
+//     {measureKeys.length > 0 && columnHeaders.length > 0 && (
+//       <tr>
+//         {columnHeaders.flatMap((col) =>
+//           measureKeys.map((measure) => (
+//             <th key={`${col.key}-${measure}`}>{measure}</th>
+//           ))
+//         )}
+//       </tr>
+//     )}
+//   </thead>
+
+//   <tbody>
+//     {rowData.map(({ rowKey, rowTitles }, i) => {
+//       const rowCells = [];
+
+//       rowTitles.forEach((title, level) => {
+//         const shouldRender =
+//           i === 0 ||
+//           rowData[i - 1].rowTitles[level] !== title ||
+//           !rowData[i - 1].rowTitles
+//             .slice(0, level)
+//             .every((val, idx) => val === rowTitles[idx]);
+
+//         if (shouldRender) {
+//           const rowSpan = rowData
+//             .slice(i)
+//             .findIndex(
+//               (r, idx) =>
+//                 idx > 0 &&
+//                 r.rowTitles.slice(0, level + 1).join("|") !==
+//                   rowTitles.slice(0, level + 1).join("|")
+//             );
+
+//           const actualRowSpan =
+//             rowSpan === -1 ? rowData.length - i : rowSpan;
+
+//           rowCells.push(
+//             <td key={`row-${i}-${level}`} rowSpan={actualRowSpan}>
+//               {title}
+//             </td>
+//           );
+//         }
+//       });
+
+//       const valueCells =
+//         columnHeaders.length > 0
+//           ? columnHeaders.flatMap((col) =>
+//               measureKeys.map((measure) => {
+//                 const cellData = getCell(rowKey, col.key);
+//                 return (
+//                   <td key={`${rowKey}-${col.key}-${measure}`}>
+//                     {formatCellValue(cellData[measure])}
+//                   </td>
+//                 );
+//               })
+//             )
+//           : measureKeys.map((measure) => {
+//               const cellData = getCell(rowKey, "");
+//               return (
+//                 <td key={`cell-${i}-${measure}`}>
+//                   {formatCellValue(cellData[measure])}
+//                 </td>
+//               );
+//             });
+
+//       return <tr key={`row-${i}`}>{[...rowCells, ...valueCells]}</tr>;
+//     })}
+//   </tbody>
+
+//   {measureKeys.length > 0 && (
+//     <tfoot>
+//       <tr>
+//         {rowData.length > 0 && (
+//           <td colSpan={rowData[0]?.rowTitles.length || 1}>Total</td>
+//         )}
+
+//         {columnHeaders.length > 0
+//           ? columnHeaders.flatMap((col) =>
+//               measureKeys.map((measure) => {
+//                 const agg = footerAggregations.get(
+//                   `${col.key}-${measure}`
+//                 ) || { sum: 0, count: 0 };
+//                 return (
+//                   <td key={`footer-${col.key}-${measure}`}>
+//                     {formatFooterValue(agg.sum, agg.count)}
+//                   </td>
+//                 );
+//               })
+//             )
+//           : measureKeys.map((measure) => {
+//               const agg = footerAggregations.get(measure) || {
+//                 sum: 0,
+//                 count: 0,
+//               };
+//               return (
+//                 <td key={`footer-${measure}`}>
+//                   {formatFooterValue(agg.sum, agg.count)}
+//                 </td>
+//               );
+//             })}
+//       </tr>
+//     </tfoot>
+//   )}
+// </table>

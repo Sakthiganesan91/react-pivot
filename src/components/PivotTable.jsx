@@ -132,13 +132,36 @@ const PivotTable = ({ data, method }) => {
     return <div>No data available</div>;
   }
 
+  const aggValues = {};
+
+  rowTotals.forEach((row) => {
+    Object.entries(row.measures).forEach(([measure, value]) => {
+      const val =
+        typeof value === "number" ? value : parseFloat(value.sum ?? value);
+
+      if (!aggValues[measure]) {
+        aggValues[measure] = {
+          sum: 0,
+          count: 0,
+          max: -Infinity,
+          min: Infinity,
+        };
+      }
+
+      aggValues[measure].sum += value.sum ?? val;
+      aggValues[measure].count += value.count ?? 1;
+      aggValues[measure].max = Math.max(aggValues[measure].max, val);
+      aggValues[measure].min = Math.min(aggValues[measure].min, val);
+    });
+  });
+
   return (
     <table border="1" className="table">
       <thead className="table-danger">
         {columnHeaderRows.length === 0 && (
           <tr>
             {rowData[0]?.rowTitles.map((_, i) => (
-              <th key={`row-header-placeholder-${i}`}>Row {i + 1}</th>
+              <th key={`row-header-${i}`}>Row {i + 1}</th>
             ))}
             {columnHeaders.length === 0 &&
               measureKeys.map((measure) => <th key={measure}>{measure}</th>)}
@@ -149,7 +172,7 @@ const PivotTable = ({ data, method }) => {
             {i === 0 &&
               rowData[0]?.rowTitles.map((_, j) => (
                 <th
-                  key={`row-header-placeholder-${j}`}
+                  key={`row-header-${j}`}
                   rowSpan={
                     columnHeaderRows.length + (measureKeys.length > 0 ? 1 : 0)
                   }
@@ -195,7 +218,7 @@ const PivotTable = ({ data, method }) => {
             {i === 0 &&
               measureKeys.map((measure) => (
                 <th
-                  key={`row-total-measure-${measure}`}
+                  key={`row-total-${measure}`}
                   className="row-total-header"
                   rowSpan={columnHeaderRows.length + 1}
                 >
@@ -322,42 +345,8 @@ const PivotTable = ({ data, method }) => {
                 })}
             {columnHeaderRows.length > 0 &&
               measureKeys.map((measure) => {
-                const aggValues = {};
-
-                rowTotals.forEach((row) => {
-                  Object.entries(row.measures).forEach(([measure, value]) => {
-                    const val =
-                      typeof value === "number"
-                        ? value
-                        : parseFloat(value.sum ?? value);
-
-                    if (!aggValues[measure]) {
-                      aggValues[measure] = {
-                        sum: 0,
-                        count: 0,
-                        max: -Infinity,
-                        min: Infinity,
-                      };
-                    }
-
-                    aggValues[measure].sum += value.sum ?? val;
-                    aggValues[measure].count += value.count ?? 1;
-                    aggValues[measure].max = Math.max(
-                      aggValues[measure].max,
-                      val
-                    );
-                    aggValues[measure].min = Math.min(
-                      aggValues[measure].min,
-                      val
-                    );
-                  });
-                });
-
                 return (
-                  <td
-                    key={`grand-total-${measure}`}
-                    className="grand-total-cell"
-                  >
+                  <td key={`grand-total-${measure}`}>
                     {method === "average"
                       ? (
                           aggValues[measure].sum / aggValues[measure].count

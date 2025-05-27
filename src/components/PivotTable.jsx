@@ -3,10 +3,16 @@ import { flattenColumns, flattenRows } from "./calculation";
 
 const PivotTable = ({ data, method }) => {
   const { rows = [], columns = [], values = [] } = data || {};
+  const rowTotals = data.rowTotals;
+  const grandTotal = data.grandTotal;
 
   const rowData = useMemo(() => flattenRows(rows), [rows]);
   const columnHeaders = useMemo(() => flattenColumns(columns), [columns]);
 
+  const getRowTotalCell = (rowKey, rowTotals) => {
+    const cell = rowTotals?.find((c) => c.rowKey === rowKey);
+    return cell ? cell.measures : {};
+  };
   const measureKeys = useMemo(() => {
     if (typeof values === "function") return [];
     return Array.from(
@@ -138,7 +144,6 @@ const PivotTable = ({ data, method }) => {
               measureKeys.map((measure) => <th key={measure}>{measure}</th>)}
           </tr>
         )}
-
         {columnHeaderRows.map((row, i) => (
           <tr key={`col-header-${i}`}>
             {i === 0 &&
@@ -152,7 +157,6 @@ const PivotTable = ({ data, method }) => {
                   Row {j + 1}
                 </th>
               ))}
-
             {row.map((col, j) => {
               const shouldRenderColumn =
                 j === 0 ||
@@ -188,6 +192,16 @@ const PivotTable = ({ data, method }) => {
                 </th>
               );
             })}
+            {i === 0 &&
+              measureKeys.map((measure) => (
+                <th
+                  key={`row-total-measure-${measure}`}
+                  className="row-total-header"
+                  rowSpan={columnHeaderRows.length + 1}
+                >
+                  Total {measure}
+                </th>
+              ))}
           </tr>
         ))}
 
@@ -256,7 +270,22 @@ const PivotTable = ({ data, method }) => {
                   );
                 });
 
-          return <tr key={`row-${i}`}>{[...rowCells, ...valueCells]}</tr>;
+          const rowTotalCells = measureKeys.map((measure) => {
+            const rowTotalData = getRowTotalCell(rowKey, rowTotals);
+            return (
+              <td key={`${rowKey}-total-${measure}`} className="row-total-cell">
+                {formatCellValue(rowTotalData[measure])}
+              </td>
+            );
+          });
+
+          return columnHeaderRows.length > 0 ? (
+            <tr key={`row-${i}`}>
+              {[...rowCells, ...valueCells, ...rowTotalCells]}
+            </tr>
+          ) : (
+            <tr key={`row-${i}`}>{[...rowCells, ...valueCells]}</tr>
+          );
         })}
       </tbody>
 
@@ -291,6 +320,54 @@ const PivotTable = ({ data, method }) => {
                     </td>
                   );
                 })}
+            {columnHeaderRows.length > 0 &&
+              measureKeys.map((measure) => {
+                const aggValues = {};
+
+                rowTotals.forEach((row) => {
+                  Object.entries(row.measures).forEach(([measure, value]) => {
+                    const val =
+                      typeof value === "number"
+                        ? value
+                        : parseFloat(value.sum ?? value);
+
+                    if (!aggValues[measure]) {
+                      aggValues[measure] = {
+                        sum: 0,
+                        count: 0,
+                        max: -Infinity,
+                        min: Infinity,
+                      };
+                    }
+
+                    aggValues[measure].sum += value.sum ?? val;
+                    aggValues[measure].count += value.count ?? 1;
+                    aggValues[measure].max = Math.max(
+                      aggValues[measure].max,
+                      val
+                    );
+                    aggValues[measure].min = Math.min(
+                      aggValues[measure].min,
+                      val
+                    );
+                  });
+                });
+
+                return (
+                  <td
+                    key={`grand-total-${measure}`}
+                    className="grand-total-cell"
+                  >
+                    {method === "average"
+                      ? aggValues[measure].sum / aggValues[measure].count
+                      : method === "max"
+                      ? aggValues[measure].max
+                      : method === "min"
+                      ? aggValues[measure].min
+                      : formatCellValue(grandTotal[measure])}
+                  </td>
+                );
+              })}
           </tr>
         </tfoot>
       )}

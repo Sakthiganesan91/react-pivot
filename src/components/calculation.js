@@ -1,3 +1,97 @@
+// export const groupBy = (
+//   data,
+//   rowKeys,
+//   columnKeys,
+//   values,
+//   aggregationMethod
+// ) => {
+//   if (!rowKeys.length && !columnKeys.length && !values.length) return data;
+
+//   if (!rowKeys.length && !columnKeys.length && values.length) {
+//     const measures = {};
+//     // values.forEach((value) => {
+//     //   measures[value] = data.reduce((total, item) => {
+//     //     return total + (parseFloat(item[value]) || 0);
+//     //   }, 0);
+//     // });
+
+//     switch (aggregationMethod) {
+//       case "add":
+//         values.forEach((value) => {
+//           measures[value] = data.reduce((sum, item) => {
+//             const parsed = parseFloat(item[value]);
+//             if (!isNaN(parsed)) {
+//               return sum + parsed;
+//             } else {
+//               return sum + 1;
+//             }
+//           }, 0);
+//         });
+
+//         break;
+//       case "count":
+//         values.forEach((value) => {
+//           measures[value] = data.reduce((sum, item) => {
+//             return sum + 1;
+//           }, 0);
+//         });
+
+//         break;
+
+//       case "max":
+//         values.forEach((value) => {
+//           if (!measures[value]) measures[value] = 0;
+//           const parsed = parseFloat(measures[value]);
+//           measures[value] = Math.max(measures[value], parsed);
+//         });
+//         break;
+
+//       case "min":
+//         values.forEach((value) => {
+//           if (!measures[value]) measures[value] = 999999999999999;
+//           const parsed = parseFloat(measures[value]);
+//           measures[value] = Math.min(measures[value], parsed);
+//         });
+//         break;
+//       default:
+//         break;
+//     }
+//     // values.forEach((value) => {
+//     //   measures[value] = data.reduce((sum, item) => {
+//     //     const parsed = parseFloat(item[value]);
+//     //     if (!isNaN(parsed)) {
+//     //       return sum + parsed;
+//     //     } else {
+//     //       return sum + 1;
+//     //     }
+//     //   }, 0);
+//     // });
+//     return measures;
+//   }
+
+//   if (rowKeys.length && !columnKeys.length) {
+//     return {
+//       rows: groupByDimension(data, rowKeys, values, aggregationMethod),
+//       values: groupByCells(data, rowKeys, [], values, aggregationMethod),
+//       grandTotal: calculateGrandTotal(data, values, aggregationMethod),
+//     };
+//   }
+
+//   if (!rowKeys.length && columnKeys.length) {
+//     return {
+//       columns: groupByDimension(data, columnKeys, [], aggregationMethod),
+//       values: groupByCells(data, [], columnKeys, values, aggregationMethod),
+//       grandTotal: calculateGrandTotal(data, values, aggregationMethod),
+//     };
+//   }
+
+//   return {
+//     rows: groupByDimension(data, rowKeys, values, aggregationMethod),
+//     columns: groupByDimension(data, columnKeys, values, aggregationMethod),
+//     values: groupByCells(data, rowKeys, columnKeys, values, aggregationMethod),
+//     grandTotal: calculateGrandTotal(data, values, aggregationMethod),
+//   };
+// };
 export const groupBy = (
   data,
   rowKeys,
@@ -9,12 +103,6 @@ export const groupBy = (
 
   if (!rowKeys.length && !columnKeys.length && values.length) {
     const measures = {};
-    // values.forEach((value) => {
-    //   measures[value] = data.reduce((total, item) => {
-    //     return total + (parseFloat(item[value]) || 0);
-    //   }, 0);
-    // });
-
     switch (aggregationMethod) {
       case "add":
         values.forEach((value) => {
@@ -27,7 +115,6 @@ export const groupBy = (
             }
           }, 0);
         });
-
         break;
       case "count":
         values.forEach((value) => {
@@ -35,9 +122,7 @@ export const groupBy = (
             return sum + 1;
           }, 0);
         });
-
         break;
-
       case "max":
         values.forEach((value) => {
           if (!measures[value]) measures[value] = 0;
@@ -45,7 +130,6 @@ export const groupBy = (
           measures[value] = Math.max(measures[value], parsed);
         });
         break;
-
       case "min":
         values.forEach((value) => {
           if (!measures[value]) measures[value] = 999999999999999;
@@ -56,16 +140,6 @@ export const groupBy = (
       default:
         break;
     }
-    // values.forEach((value) => {
-    //   measures[value] = data.reduce((sum, item) => {
-    //     const parsed = parseFloat(item[value]);
-    //     if (!isNaN(parsed)) {
-    //       return sum + parsed;
-    //     } else {
-    //       return sum + 1;
-    //     }
-    //   }, 0);
-    // });
     return measures;
   }
 
@@ -89,6 +163,7 @@ export const groupBy = (
     rows: groupByDimension(data, rowKeys, values, aggregationMethod),
     columns: groupByDimension(data, columnKeys, values, aggregationMethod),
     values: groupByCells(data, rowKeys, columnKeys, values, aggregationMethod),
+    rowTotals: groupByCells(data, rowKeys, [], values, aggregationMethod), // ADD THIS LINE
     grandTotal: calculateGrandTotal(data, values, aggregationMethod),
   };
 };
@@ -303,9 +378,9 @@ const calculateGrandTotal = (data, values, aggregationMethod) => {
       break;
     case "min":
       values.forEach((value) => {
-        if (!totals[value]) totals[value] = 999999999999999;
+        if (!totals[value]) totals[value] = Infinity;
         const parsed = parseFloat(totals[value]);
-        totals[value] = Math.min(totals[value], parsed);
+        if (!isNaN(parsed)) totals[value] = Math.min(totals[value], parsed);
       });
       break;
     default:

@@ -10,7 +10,7 @@ function App() {
 
   return (
     <div className="m-1">
-      <div className="d-flex justify-content-center border border-3 py-2 rounded-3">
+      <div className="d-flex justify-content-center py-2 rounded-3">
         <div>
           <p className="h5">Choose a CSV File </p>
           <FileReader setData={setData} setHeaders={setHeaders} />

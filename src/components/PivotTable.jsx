@@ -359,7 +359,9 @@ const PivotTable = ({ data, method }) => {
                     className="grand-total-cell"
                   >
                     {method === "average"
-                      ? aggValues[measure].sum / aggValues[measure].count
+                      ? (
+                          aggValues[measure].sum / aggValues[measure].count
+                        ).toFixed(2)
                       : method === "max"
                       ? aggValues[measure].max
                       : method === "min"

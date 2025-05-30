@@ -1,97 +1,3 @@
-// export const groupBy = (
-//   data,
-//   rowKeys,
-//   columnKeys,
-//   values,
-//   aggregationMethod
-// ) => {
-//   if (!rowKeys.length && !columnKeys.length && !values.length) return data;
-
-//   if (!rowKeys.length && !columnKeys.length && values.length) {
-//     const measures = {};
-//     // values.forEach((value) => {
-//     //   measures[value] = data.reduce((total, item) => {
-//     //     return total + (parseFloat(item[value]) || 0);
-//     //   }, 0);
-//     // });
-
-//     switch (aggregationMethod) {
-//       case "add":
-//         values.forEach((value) => {
-//           measures[value] = data.reduce((sum, item) => {
-//             const parsed = parseFloat(item[value]);
-//             if (!isNaN(parsed)) {
-//               return sum + parsed;
-//             } else {
-//               return sum + 1;
-//             }
-//           }, 0);
-//         });
-
-//         break;
-//       case "count":
-//         values.forEach((value) => {
-//           measures[value] = data.reduce((sum, item) => {
-//             return sum + 1;
-//           }, 0);
-//         });
-
-//         break;
-
-//       case "max":
-//         values.forEach((value) => {
-//           if (!measures[value]) measures[value] = 0;
-//           const parsed = parseFloat(measures[value]);
-//           measures[value] = Math.max(measures[value], parsed);
-//         });
-//         break;
-
-//       case "min":
-//         values.forEach((value) => {
-//           if (!measures[value]) measures[value] = 999999999999999;
-//           const parsed = parseFloat(measures[value]);
-//           measures[value] = Math.min(measures[value], parsed);
-//         });
-//         break;
-//       default:
-//         break;
-//     }
-//     // values.forEach((value) => {
-//     //   measures[value] = data.reduce((sum, item) => {
-//     //     const parsed = parseFloat(item[value]);
-//     //     if (!isNaN(parsed)) {
-//     //       return sum + parsed;
-//     //     } else {
-//     //       return sum + 1;
-//     //     }
-//     //   }, 0);
-//     // });
-//     return measures;
-//   }
-
-//   if (rowKeys.length && !columnKeys.length) {
-//     return {
-//       rows: groupByDimension(data, rowKeys, values, aggregationMethod),
-//       values: groupByCells(data, rowKeys, [], values, aggregationMethod),
-//       grandTotal: calculateGrandTotal(data, values, aggregationMethod),
-//     };
-//   }
-
-//   if (!rowKeys.length && columnKeys.length) {
-//     return {
-//       columns: groupByDimension(data, columnKeys, [], aggregationMethod),
-//       values: groupByCells(data, [], columnKeys, values, aggregationMethod),
-//       grandTotal: calculateGrandTotal(data, values, aggregationMethod),
-//     };
-//   }
-
-//   return {
-//     rows: groupByDimension(data, rowKeys, values, aggregationMethod),
-//     columns: groupByDimension(data, columnKeys, values, aggregationMethod),
-//     values: groupByCells(data, rowKeys, columnKeys, values, aggregationMethod),
-//     grandTotal: calculateGrandTotal(data, values, aggregationMethod),
-//   };
-// };
 export const groupBy = (
   data,
   rowKeys,
@@ -163,7 +69,7 @@ export const groupBy = (
     rows: groupByDimension(data, rowKeys, values, aggregationMethod),
     columns: groupByDimension(data, columnKeys, values, aggregationMethod),
     values: groupByCells(data, rowKeys, columnKeys, values, aggregationMethod),
-    rowTotals: groupByCells(data, rowKeys, [], values, aggregationMethod), // ADD THIS LINE
+    rowTotals: groupByCells(data, rowKeys, [], values, aggregationMethod),
     grandTotal: calculateGrandTotal(data, values, aggregationMethod),
   };
 };
@@ -233,12 +139,6 @@ const groupByDimension = (data, keys, values, aggregationMethod) => {
         default:
           break;
       }
-      // values.forEach((value) => {
-      //   entry[value] = items.reduce((total, item) => {
-      //     const parsed = parseFloat(item[value]);
-      //     return total + (!isNaN(parsed) ? parsed : 1);
-      //   }, 0);
-      // });
     }
 
     if (restKeys.length) {
@@ -332,11 +232,6 @@ const groupByCells = (data, rowKeys, columnKeys, values, aggregationMethod) => {
       default:
         break;
     }
-    // values.forEach((value) => {
-    //   if (!cell.measures[value]) cell.measures[value] = 0;
-    //   const parsed = parseFloat(item[value]);
-    //   cell.measures[value] += !isNaN(parsed) ? parsed : 1;
-    // });
   });
 
   return cells;
@@ -386,17 +281,6 @@ const calculateGrandTotal = (data, values, aggregationMethod) => {
     default:
       break;
   }
-  // values.forEach((value) => {
-  //   totals[value] = data.reduce((sum, item) => {
-  //     const parsed = parseFloat(item[value]);
-
-  //     if (!isNaN(parsed)) {
-  //       return sum + parsed;
-  //     } else {
-  //       return sum + 1;
-  //     }
-  //   }, 0);
-  // });
 
   return totals;
 };

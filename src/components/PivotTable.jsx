@@ -13,6 +13,7 @@ const PivotTable = ({ data, method }) => {
     const cell = rowTotals?.find((c) => c.rowKey === rowKey);
     return cell ? cell.measures : {};
   };
+
   const measureKeys = useMemo(() => {
     if (typeof values === "function") return [];
     return Array.from(
@@ -76,10 +77,13 @@ const PivotTable = ({ data, method }) => {
           const matchingValues = values.filter((v) => v.colKey === col.key);
           let sum = 0;
           let count = 0;
-
+          let max = -Infinity;
+          let min = Infinity;
           matchingValues.forEach((v) => {
             const val = v.measures?.[measure];
             if (typeof val === "number") {
+              max = Math.max(max, val);
+              min = Math.min(min, val);
               sum += val;
               count++;
             } else if (typeof val === "object" && val !== null) {
@@ -90,17 +94,21 @@ const PivotTable = ({ data, method }) => {
             }
           });
 
-          aggregations.set(`${col.key}-${measure}`, { sum, count });
+          aggregations.set(`${col.key}-${measure}`, { sum, count, min, max });
         });
       });
     } else {
       measureKeys.forEach((measure) => {
         let sum = 0;
         let count = 0;
+        let max = -Infinity;
+        let min = Infinity;
 
         values.forEach((v) => {
           const val = v.measures?.[measure];
           if (typeof val === "number") {
+            max = Math.max(max, val);
+            min = Math.min(min, val);
             sum += val;
             count++;
           } else if (typeof val === "object" && val !== null) {
@@ -111,7 +119,7 @@ const PivotTable = ({ data, method }) => {
           }
         });
 
-        aggregations.set(measure, { sum, count });
+        aggregations.set(measure, { sum, count, min, max });
       });
     }
 
@@ -119,10 +127,12 @@ const PivotTable = ({ data, method }) => {
   }, [values, columnHeaders, measureKeys]);
 
   const formatFooterValue = useCallback(
-    (sum, count) => {
+    (sum, count, max, min) => {
       if (method === "average") {
         return count > 0 ? (sum / count).toFixed(2) : "";
       }
+      if (method === "min") return min;
+      if (method === "max") return max;
       return sum > 0 ? sum.toFixed(2) : count > 0 ? `${count}x` : "";
     },
     [method]
@@ -134,26 +144,85 @@ const PivotTable = ({ data, method }) => {
 
   const aggValues = {};
 
-  rowTotals.forEach((row) => {
-    Object.entries(row.measures).forEach(([measure, value]) => {
-      const val =
-        typeof value === "number" ? value : parseFloat(value.sum ?? value);
+  rowTotals &&
+    rowTotals.forEach((row) => {
+      Object.entries(row.measures).forEach(([measure, value]) => {
+        const val =
+          typeof value === "number" ? value : parseFloat(value.sum ?? value);
 
-      if (!aggValues[measure]) {
-        aggValues[measure] = {
-          sum: 0,
-          count: 0,
-          max: -Infinity,
-          min: Infinity,
-        };
-      }
+        if (!aggValues[measure]) {
+          aggValues[measure] = {
+            sum: 0,
+            count: 0,
+            max: -Infinity,
+            min: Infinity,
+          };
+        }
 
-      aggValues[measure].sum += value.sum ?? val;
-      aggValues[measure].count += value.count ?? 1;
-      aggValues[measure].max = Math.max(aggValues[measure].max, val);
-      aggValues[measure].min = Math.min(aggValues[measure].min, val);
+        aggValues[measure].sum += value.sum ?? val;
+        aggValues[measure].count += value.count ?? 1;
+        aggValues[measure].max = Math.max(aggValues[measure].max, val);
+        aggValues[measure].min = Math.min(aggValues[measure].min, val);
+      });
     });
-  });
+
+  const getColumnTotalCell = () => {
+    const totals = {};
+
+    rowData.length === 0 &&
+      measureKeys &&
+      measureKeys.forEach((measure) => {
+        console.log(columnHeaderRows);
+
+        const values = [];
+
+        columnHeaders.forEach((categoryKey) => {
+          const cellData = getCell("", categoryKey.key);
+          let value = cellData[measure];
+
+          if (method === "average") {
+            value = value.sum / value.count;
+          }
+          if (value !== null && value !== undefined && !isNaN(value)) {
+            values.push(Number(value));
+          }
+        });
+        switch (method.toLowerCase()) {
+          case "sum":
+            totals[measure] = values.reduce((sum, val) => sum + val, 0);
+            break;
+
+          case "average":
+            totals[measure] =
+              values.length > 0
+                ? values.reduce((sum, val) => sum + val, 0) / values.length
+                : 0;
+            break;
+
+          case "count":
+            totals[measure] = values.reduce(
+              (accumulator, currentValue) => accumulator + currentValue,
+              0
+            );
+            break;
+
+          case "min":
+            totals[measure] = values.length > 0 ? Math.min(...values) : 0;
+            break;
+
+          case "max":
+            totals[measure] = values.length > 0 ? Math.max(...values) : 0;
+            break;
+
+          default:
+            totals[measure] = values.reduce((sum, val) => sum + val, 0);
+            break;
+        }
+      });
+
+    return totals;
+  };
+  const totalData = getColumnTotalCell();
 
   return (
     <table border="1" className="table">
@@ -222,7 +291,12 @@ const PivotTable = ({ data, method }) => {
                   className="row-total-header"
                   rowSpan={columnHeaderRows.length + 1}
                 >
-                  Total {measure}
+                  Total{" "}
+                  {method === "add"
+                    ? "Sum"
+                    : method[0].toUpperCase() +
+                      method.slice(1, method.length)}{" "}
+                  of {measure}
                 </th>
               ))}
           </tr>
@@ -295,10 +369,12 @@ const PivotTable = ({ data, method }) => {
 
           const rowTotalCells = measureKeys.map((measure) => {
             const rowTotalData = getRowTotalCell(rowKey, rowTotals);
-            return (
+            return rowKey && rowTotals && rowTotals.length > 0 ? (
               <td key={`${rowKey}-total-${measure}`} className="row-total-cell">
                 {formatCellValue(rowTotalData[measure])}
               </td>
+            ) : (
+              <td key={measure}>{formatCellValue(totalData[measure])}</td>
             );
           });
 
@@ -316,7 +392,18 @@ const PivotTable = ({ data, method }) => {
         <tfoot>
           <tr>
             {rowData.length > 0 && (
-              <td colSpan={rowData[0]?.rowTitles.length || 1}>Total</td>
+              <td
+                colSpan={rowData[0]?.rowTitles.length || 1}
+                style={{
+                  background: "rgb(243, 201, 201)",
+                }}
+              >
+                Total{" "}
+                {method === "add"
+                  ? "Sum"
+                  : method[0].toUpperCase() +
+                    method.slice(1, method.length)}{" "}
+              </td>
             )}
 
             {columnHeaders.length > 0
@@ -327,7 +414,12 @@ const PivotTable = ({ data, method }) => {
                     ) || { sum: 0, count: 0 };
                     return (
                       <td key={`footer-${col.key}-${measure}`}>
-                        {formatFooterValue(agg.sum, agg.count)}
+                        {formatFooterValue(
+                          agg.sum,
+                          agg.count,
+                          agg.max,
+                          agg.min
+                        )}
                       </td>
                     );
                   })
@@ -339,13 +431,13 @@ const PivotTable = ({ data, method }) => {
                   };
                   return (
                     <td key={`footer-${measure}`}>
-                      {formatFooterValue(agg.sum, agg.count)}
+                      {formatFooterValue(agg.sum, agg.count, agg.max, agg.min)}
                     </td>
                   );
                 })}
             {columnHeaderRows.length > 0 &&
               measureKeys.map((measure) => {
-                return (
+                return rowData.length > 0 ? (
                   <td key={`grand-total-${measure}`}>
                     {method === "average"
                       ? (
@@ -357,6 +449,8 @@ const PivotTable = ({ data, method }) => {
                       ? aggValues[measure].min
                       : formatCellValue(grandTotal[measure])}
                   </td>
+                ) : (
+                  <td key={measure}>{totalData[measure]}</td>
                 );
               })}
           </tr>

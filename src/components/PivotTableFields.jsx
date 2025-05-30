@@ -1,140 +1,251 @@
-import React, { useState, useCallback } from "react";
+import { useState } from "react";
 
-const FieldSelector = React.memo(({ title, headers, selected, onChange }) => (
-  <div className="col-4">
-    <p className="fw-bold">{title}</p>
-    {headers.map((header) => (
-      <div key={header}>
-        <input
-          type="checkbox"
-          name={header}
-          id={`${title}-${header}`}
-          checked={selected.includes(header)}
-          onChange={onChange}
-        />
-        <label htmlFor={`${title}-${header}`} className="mx-2">
-          {header[0].toUpperCase() + header.slice(1)}
-        </label>
-      </div>
-    ))}
-  </div>
-));
+const aggregations = ["add", "average", "count", "max", "min"];
 
-const aggregrations = ["add", "average", "count", "max", "min"];
+const PivotTableFields = ({
+  headers,
+  setTableRows,
+  setValueRows,
+  setColumnValues,
+}) => {
+  const [rows, setRows] = useState([]);
+  const [values, setValues] = useState([]);
+  const [columns, setColumns] = useState([]);
+  const [aggregationMethod, setAggregationMethod] = useState("add");
+  const [draggedField, setDraggedField] = useState(null);
 
-const PivotTableFields = React.memo(
-  ({ headers, setTableRows, setValueRows, setColumnValues }) => {
-    const [rows, setRows] = useState([]);
-    const [values, setValues] = useState([]);
-    const [columns, setColumns] = useState([]);
-    const [aggregrationMethod, setAggregationMethod] = useState("add");
+  const usedFields = [...rows, ...values, ...columns];
+  const availableFields = headers
+    ? headers.filter((header) => !usedFields.includes(header))
+    : [];
 
-    const rowChangeHandler = useCallback(
-      (event) => {
-        const name = event.target.name;
-        const isChecked = event.target.checked;
+  const updatePivotFields = (
+    newRows,
+    newColumns,
+    newValues,
+    newAggregation
+  ) => {
+    setTableRows(newRows, newColumns, newValues, newAggregation);
+    setColumnValues(newColumns);
+    setValueRows(newValues);
+  };
 
-        const updated = isChecked
-          ? [...rows, name]
-          : rows.filter((r) => r !== name);
+  const handleDragStart = (e, field) => {
+    setDraggedField(field);
+    e.dataTransfer.effectAllowed = "move";
+  };
 
-        setRows(updated);
-        setTableRows(updated, columns, values, aggregrationMethod);
-      },
-      [rows, columns, values, aggregrationMethod]
-    );
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
 
-    const columnChangeHandler = useCallback(
-      (event) => {
-        const name = event.target.name;
-        const isChecked = event.target.checked;
+  const handleDrop = (e, dropZone) => {
+    e.preventDefault();
 
-        const updated = isChecked
-          ? [...columns, name]
-          : columns.filter((c) => c !== name);
+    if (!draggedField) return;
 
-        setColumns(updated);
-        setColumnValues(updated);
-        setTableRows(rows, updated, values, aggregrationMethod);
-      },
-      [columns, rows, values, aggregrationMethod, setColumnValues]
-    );
+    const newRows = rows.filter((r) => r !== draggedField);
+    const newColumns = columns.filter((c) => c !== draggedField);
+    const newValues = values.filter((v) => v !== draggedField);
 
-    const valuesChangeHandler = useCallback(
-      (event) => {
-        const name = event.target.name;
-        const isChecked = event.target.checked;
+    let updatedRows = newRows;
+    let updatedColumns = newColumns;
+    let updatedValues = newValues;
 
-        const updated = isChecked
-          ? [...values, name]
-          : values.filter((v) => v !== name);
-
-        setValues(updated);
-        setValueRows(updated);
-        setTableRows(rows, columns, updated, aggregrationMethod);
-      },
-      [values, rows, columns, aggregrationMethod, setValueRows]
-    );
-
-    const aggregationMethodHandler = useCallback(
-      (event) => {
-        const method = event.target.value;
-        setAggregationMethod(method);
-        setTableRows(rows, columns, values, method);
-      },
-      [rows, columns, values]
-    );
-
-    if (!headers || headers.length === 0) {
-      return <p>No headers found. Please import CSV file.</p>;
+    if (dropZone === "rows") {
+      updatedRows = [...newRows, draggedField];
+    } else if (dropZone === "columns") {
+      updatedColumns = [...newColumns, draggedField];
+    } else if (dropZone === "values") {
+      updatedValues = [...newValues, draggedField];
     }
 
-    return (
-      <div className="border border-2 p-3">
-        <div className="row">
-          <FieldSelector
-            title="Rows"
-            headers={headers}
-            selected={rows}
-            onChange={rowChangeHandler}
-          />
-          <FieldSelector
-            title="Columns"
-            headers={headers}
-            selected={columns}
-            onChange={columnChangeHandler}
-          />
-          <FieldSelector
-            title="Values"
-            headers={headers}
-            selected={values}
-            onChange={valuesChangeHandler}
-          />
+    setRows(updatedRows);
+    setColumns(updatedColumns);
+    setValues(updatedValues);
+
+    updatePivotFields(
+      updatedRows,
+      updatedColumns,
+      updatedValues,
+      aggregationMethod
+    );
+    setDraggedField(null);
+  };
+
+  const handleRemove = (field, fromZone) => {
+    let updatedRows = rows;
+    let updatedColumns = columns;
+    let updatedValues = values;
+
+    if (fromZone === "rows") {
+      updatedRows = rows.filter((r) => r !== field);
+      setRows(updatedRows);
+    } else if (fromZone === "columns") {
+      updatedColumns = columns.filter((c) => c !== field);
+      setColumns(updatedColumns);
+    } else if (fromZone === "values") {
+      updatedValues = values.filter((v) => v !== field);
+      setValues(updatedValues);
+    }
+
+    updatePivotFields(
+      updatedRows,
+      updatedColumns,
+      updatedValues,
+      aggregationMethod
+    );
+  };
+
+  const handleAggregationChange = (event) => {
+    const method = event.target.value;
+    setAggregationMethod(method);
+    updatePivotFields(rows, columns, values, method);
+  };
+
+  if (!headers || headers.length === 0) {
+    return <p>No headers found. Please import CSV file.</p>;
+  }
+
+  return (
+    <div className="border border-2 p-3">
+      <div className="mb-4">
+        <p className="fw-bold">Fields</p>
+        <div className="d-flex flex-wrap gap-2">
+          {availableFields.map((field) => (
+            <div
+              key={field}
+              draggable
+              onDragStart={(e) => handleDragStart(e, field)}
+              className="border rounded px-2 mb-2"
+              style={{ cursor: "grab" }}
+            >
+              {field[0].toUpperCase() + field.slice(1)}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="row">
+        <div className="col-4">
+          <p className="fw-bold">Rows</p>
+          <div
+            className="border rounded p-3"
+            style={{ minHeight: "100px" }}
+            onDrop={(e) => handleDrop(e, "rows")}
+            onDragOver={handleDragOver}
+          >
+            {rows.length === 0 ? (
+              <p className="text-muted">Rows</p>
+            ) : (
+              rows.map((item, index) => (
+                <div
+                  key={`${item}-${index}`}
+                  className="d-flex align-items-center"
+                >
+                  <span>{item[0].toUpperCase() + item.slice(1)}</span>
+                  <button
+                    type="button"
+                    className="btn btn-sm fw-bold"
+                    onClick={() => handleRemove(item, "rows")}
+                  >
+                    X
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        <div className="row my-3">
-          <div className="col-3">
-            <p className="fw-bold">Aggregation Methods</p>
-            {aggregrations.map((method) => (
-              <div key={method}>
-                <input
-                  type="radio"
-                  name="aggregation"
-                  id={method}
-                  value={method}
-                  checked={aggregrationMethod === method}
-                  onChange={aggregationMethodHandler}
-                />
-                <label htmlFor={method} className="mx-2">
-                  {method[0].toUpperCase() + method.slice(1)}
-                </label>
+        <div className="col-4">
+          <p className="fw-bold">Columns</p>
+          <div
+            className="border rounded p-3"
+            style={{ minHeight: "100px" }}
+            onDrop={(e) => handleDrop(e, "columns")}
+            onDragOver={handleDragOver}
+          >
+            {columns.length === 0 ? (
+              <p className="text-muted">Columns</p>
+            ) : (
+              columns.map((item, index) => (
+                <div
+                  key={`${item}-${index}`}
+                  className=" d-flex align-items-center"
+                >
+                  <span>{item[0].toUpperCase() + item.slice(1)}</span>
+                  <button
+                    type="button"
+                    className="btn btn-sm fw-bold"
+                    onClick={() => handleRemove(item, "columns")}
+                  >
+                    X
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="col-4">
+          <p className="fw-bold">Values</p>
+          <div
+            className="border rounded p-3"
+            style={{ minHeight: "100px" }}
+            onDrop={(e) => handleDrop(e, "values")}
+            onDragOver={handleDragOver}
+          >
+            {values.length === 0 ? (
+              <p className="text-muted">Values</p>
+            ) : (
+              values.map((item, index) => (
+                <div
+                  key={`${item}-${index}`}
+                  className="d-flex align-items-center"
+                >
+                  <span>{item[0].toUpperCase() + item.slice(1)}</span>
+                  <button
+                    type="button"
+                    className="btn btn-sm fw-bold"
+                    onClick={() => handleRemove(item, "values")}
+                  >
+                    X
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="row my-3">
+        <div className="col-3">
+          <p className="fw-bold">Aggregation</p>
+          <div className="d-flex">
+            {aggregations.map((method) => (
+              <div key={method} className="d-flex">
+                <div>
+                  <input
+                    type="radio"
+                    name="aggregation"
+                    id={method}
+                    value={method}
+                    checked={aggregationMethod === method}
+                    onChange={handleAggregationChange}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={method} className="mx-2">
+                    {method[0].toUpperCase() + method.slice(1)}
+                  </label>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
-    );
-  }
-);
+    </div>
+  );
+};
 
 export default PivotTableFields;
